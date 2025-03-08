@@ -1,17 +1,53 @@
-import { FormArray, FormGroup, ValidationErrors } from '@angular/forms';
+import {
+  AbstractControl,
+  FormArray,
+  FormGroup,
+  ValidationErrors,
+} from '@angular/forms';
+
+async function sleep() {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(true);
+    }, 2500);
+  });
+}
 
 export class FormUtils {
+  static namePattern = '([a-zA-Z]+) ([a-zA-Z]+)';
+  static emailPattern = '^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}$';
+  static notOnlySpacesPattern = '^[a-zA-Z0-9]+$';
+
   static getTextError(errors: ValidationErrors) {
     for (const key of Object.keys(errors)) {
       switch (key) {
         case 'required':
-          return 'This field is required.';
+          return 'This field is required';
 
         case 'minlength':
-          return `Minimum length of ${errors['minlength'].requiredLength} characters.`;
+          return `Minimum of ${errors['minlength'].requiredLength} characters.`;
 
         case 'min':
-          return ` Minimum value is ${errors['min'].min}.`;
+          return `Minimum value of ${errors['min'].min}`;
+
+        case 'email':
+          return `The entered value is not a valid email address`;
+
+        case 'emailTaken':
+          return `The email address is already in use by another user`;
+
+        case 'noStrider':
+          return `The username 'strider' cannot be used in the app`;
+
+        case 'pattern':
+          if (errors['pattern'].requiredPattern === FormUtils.emailPattern) {
+            return 'The entered value does not look like an email address';
+          }
+
+          return 'Pattern error against regular expression';
+
+        default:
+          return `Unhandled validation error: ${key}`;
       }
     }
 
@@ -47,5 +83,38 @@ export class FormUtils {
     const errors = formArray.controls[index].errors ?? {};
 
     return FormUtils.getTextError(errors);
+  }
+
+  static isFieldOneEqualFieldTwo(field1: string, field2: string) {
+    return (formGroup: AbstractControl) => {
+      const field1Value = formGroup.get(field1)?.value;
+      const field2Value = formGroup.get(field2)?.value;
+
+      return field1Value === field2Value ? null : { passwordsNotEqual: true };
+    };
+  }
+
+  static async checkingServerResponse(
+    control: AbstractControl
+  ): Promise<ValidationErrors | null> {
+    console.log('Validating against server');
+
+    await sleep(); // 2 and a half seconds
+
+    const formValue = control.value;
+
+    if (formValue === 'hola@mundo.com') {
+      return {
+        emailTaken: true,
+      };
+    }
+
+    return null;
+  }
+
+  static notStrider(control: AbstractControl): ValidationErrors | null {
+    const value = control.value;
+
+    return value === 'strider' ? { noStrider: true } : null;
   }
 }
